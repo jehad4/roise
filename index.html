@@ -2,13 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THATS FOR YOU</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THIS IS FOR YOU</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
         
         body {
@@ -16,6 +21,8 @@
             background-color: #000;
             height: 100vh;
             width: 100vw;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            touch-action: manipulation;
         }
         
         #videoContainer {
@@ -34,25 +41,117 @@
         #myVideo {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
         }
         
         .hidden {
             display: none !important;
         }
+        
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 18px;
+            z-index: 1001;
+            text-align: center;
+        }
+        
+        #loading i {
+            display: block;
+            font-size: 32px;
+            margin-bottom: 10px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        #errorMsg {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            max-width: 80%;
+            z-index: 1002;
+        }
+        
+        #orientationWarning {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        #orientationWarning i {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        /* Hide orientation warning on desktop and when in landscape */
+        @media (orientation: landscape) {
+            #orientationWarning {
+                display: none;
+            }
+        }
+        
+        /* Show orientation warning on mobile portrait */
+        @media (orientation: portrait) and (max-width: 768px) {
+            #orientationWarning {
+                display: flex;
+            }
+        }
     </style>
 </head>
 <body>
     <div id="videoContainer">
-        <video id="myVideo" autoplay muted>
+        <video id="myVideo" playsinline>
             <source src="122.vss" type="video/mp4">
             Your browser does not support the video tag.
         </video>
     </div>
+    
+    <div id="loading">
+        <i class="fas fa-spinner"></i>
+        Loading video...
+    </div>
+    
+    <div id="errorMsg" class="hidden">
+        <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 15px;"></i>
+        <h2>Video Load Error</h2>
+        <p>Please make sure the video file "122.vss" is in the same folder as this page.</p>
+    </div>
+    
+    <div id="orientationWarning">
+        <i class="fas fa-rotate-right"></i>
+        <h2>Please Rotate Your Device</h2>
+        <p>For the best viewing experience, please rotate your phone to landscape mode.</p>
+    </div>
 
     <script>
-        // Get the video element
+        // Get elements
         const video = document.getElementById('myVideo');
+        const loading = document.getElementById('loading');
+        const errorMsg = document.getElementById('errorMsg');
         
         // Function to enter fullscreen
         function enterFullscreen() {
@@ -76,13 +175,24 @@
             // Pause the video on the last frame
             video.pause();
             
-            // Remove any controls that might appear
-            video.controls = false;
+            // Hide loading indicator
+            loading.classList.add('hidden');
+        });
+        
+        // When video can play, hide loading and play
+        video.addEventListener('canplay', function() {
+            loading.classList.add('hidden');
+            video.play().catch(e => {
+                // If autoplay fails, show message to user
+                loading.innerHTML = '<i class="fas fa-play-circle"></i><br>Tap to play video';
+                loading.classList.remove('hidden');
+            });
         });
         
         // Handle any errors
         video.addEventListener('error', function() {
-            console.error("Error loading video. Please check the file name and path.");
+            loading.classList.add('hidden');
+            errorMsg.classList.remove('hidden');
         });
         
         // Try to enter fullscreen when video starts playing
@@ -90,17 +200,56 @@
             enterFullscreen();
         });
         
-        // Attempt to automatically enter fullscreen when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Some browsers require a user gesture for fullscreen
-            // We'll try anyway but it might not work until video plays
-            enterFullscreen();
+        // Click to play if autoplay is blocked
+        video.addEventListener('click', function() {
+            if (video.paused) {
+                video.play();
+            }
         });
         
-        // Also try to enter fullscreen on any user interaction
-        document.addEventListener('click', function() {
-            enterFullscreen();
+        // Loading indicator click to retry
+        loading.addEventListener('click', function() {
+            if (video.error) {
+                window.location.reload();
+            } else if (video.paused) {
+                video.play();
+            }
         });
+        
+        // Attempt to automatically play when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set video to autoplay with muted (required for autoplay on many mobile devices)
+            video.muted = true;
+            video.autoplay = true;
+            
+            // Try to play programmatically
+            video.play().catch(e => {
+                console.log('Autoplay prevented, waiting for user interaction');
+            });
+        });
+        
+        // Handle device orientation changes
+        window.addEventListener('orientationchange', function() {
+            // Small delay to allow orientation to complete
+            setTimeout(enterFullscreen, 300);
+        });
+        
+        // Handle fullscreen change events
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+        
+        function handleFullscreenChange() {
+            // Check if we exited fullscreen
+            if (!document.fullscreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.mozFullScreenElement &&
+                !document.msFullscreenElement) {
+                // Try to re-enter fullscreen
+                enterFullscreen();
+            }
+        }
     </script>
 </body>
 </html>
