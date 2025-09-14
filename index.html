@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Player</title>
+    <title>Fullscreen Video Player</title>
     <style>
         * {
             margin: 0;
@@ -12,114 +12,109 @@
         }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            overflow: hidden;
+            background-color: #000;
             height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            overflow: hidden;
+            width: 100vw;
         }
         
-        .container {
-            text-align: center;
-            max-width: 800px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        }
-        
-        h1 {
-            margin-bottom: 20px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-        }
-        
-        .video-container {
-            position: relative;
+        #videoContainer {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            padding-top: 56.25%; /* 16:9 Aspect Ratio */
-            margin: 20px 0;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            height: 100%;
+            background: #000;
+            z-index: 1000;
         }
         
-        video {
+        #myVideo {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
-            border-radius: 10px;
+            object-fit: contain;
         }
         
-        .instructions {
-            margin-top: 25px;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            font-size: 0.9rem;
+        .hidden {
+            display: none !important;
         }
         
-        .note {
-            margin-top: 15px;
-            font-style: italic;
-            color: #ffcc00;
+        #replayButton {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            z-index: 1001;
         }
         
-        .footer {
-            margin-top: 20px;
-            font-size: 0.8rem;
-            color: rgba(255, 255, 255, 0.7);
+        #replayButton:hover {
+            background: rgba(0, 0, 0, 0.8);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Video Presentation</h1>
-        
-        <div class="video-container">
-            <video id="myVideo" autoplay muted>
-                <source src="122.vss" type="video/mp4">
-                Your browser does not support the video tag.
-            </video>
-        </div>
-        
-        <div class="instructions">
-            <p>This video will play automatically once and then stop.</p>
-            <p class="note">Note: No controls are available as requested.</p>
-        </div>
-        
-        <div class="footer">
-            <p>Page loads: <span id="loadCount">0</span></p>
-        </div>
+    <div id="videoContainer">
+        <video id="myVideo" autoplay muted>
+            <source src="122.vss" type="video/mp4">
+            Your browser does not support the video tag.
+        </video>
     </div>
+    
+    <button id="replayButton" class="hidden">Replay Video</button>
 
     <script>
         // Get the video element
         const video = document.getElementById('myVideo');
+        const replayButton = document.getElementById('replayButton');
         
-        // When the video ends, reset to the beginning and pause
+        // Function to enter fullscreen
+        function enterFullscreen() {
+            const container = document.getElementById('videoContainer');
+            
+            if (container.requestFullscreen) {
+                container.requestFullscreen();
+            } else if (container.mozRequestFullScreen) { // Firefox
+                container.mozRequestFullScreen();
+            } else if (container.webkitRequestFullscreen) { // Chrome, Safari
+                container.webkitRequestFullscreen();
+            } else if (container.msRequestFullscreen) { // IE/Edge
+                container.msRequestFullscreen();
+            }
+        }
+        
+        // When the video ends
         video.addEventListener('ended', function() {
-            video.currentTime = 0;
+            // Show replay button
+            replayButton.classList.remove('hidden');
         });
         
-        // Count page loads
-        if (localStorage.pageLoadCount) {
-            localStorage.pageLoadCount = Number(localStorage.pageLoadCount) + 1;
-        } else {
-            localStorage.pageLoadCount = 1;
-        }
-        document.getElementById('loadCount').textContent = localStorage.pageLoadCount;
+        // Replay functionality
+        replayButton.addEventListener('click', function() {
+            video.currentTime = 0;
+            video.play();
+            replayButton.classList.add('hidden');
+        });
         
-        // Handle case where video doesn't exist or can't load
+        // Try to enter fullscreen when video starts playing
+        video.addEventListener('play', function() {
+            enterFullscreen();
+        });
+        
+        // Handle any errors
         video.addEventListener('error', function() {
             console.error("Error loading video. Please check the file name and path.");
+        });
+        
+        // Attempt to automatically enter fullscreen when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            enterFullscreen();
         });
     </script>
 </body>
