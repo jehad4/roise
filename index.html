@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>THIS IS FOR YOU</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
             margin: 0;
@@ -16,11 +15,12 @@
             user-select: none;
         }
         
-        body {
+        body, html {
             overflow: hidden;
             background-color: #000;
-            height: 100vh;
-            width: 100vw;
+            height: 100%;
+            width: 100%;
+            position: fixed;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             touch-action: manipulation;
         }
@@ -33,56 +33,20 @@
             height: 100%;
             background: #000;
             z-index: 1000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
         }
         
         #myVideo {
+            position: absolute;
+            bottom: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: contain;
+            object-fit: cover;
+            object-position: center bottom;
         }
         
         .hidden {
             display: none !important;
-        }
-        
-        #loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 18px;
-            z-index: 1001;
-            text-align: center;
-        }
-        
-        #loading i {
-            display: block;
-            font-size: 32px;
-            margin-bottom: 10px;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        #errorMsg {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-            max-width: 80%;
-            z-index: 1002;
         }
         
         #orientationWarning {
@@ -91,9 +55,9 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
+            background: rgba(0, 0, 0, 0.95);
             color: white;
-            display: flex;
+            display: none;
             flex-direction: column;
             justify-content: center;
             align-items: center;
@@ -105,13 +69,13 @@
         #orientationWarning i {
             font-size: 48px;
             margin-bottom: 20px;
+            animation: pulse 2s infinite;
         }
         
-        /* Hide orientation warning on desktop and when in landscape */
-        @media (orientation: landscape) {
-            #orientationWarning {
-                display: none;
-            }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
         }
         
         /* Show orientation warning on mobile portrait */
@@ -124,34 +88,22 @@
 </head>
 <body>
     <div id="videoContainer">
-        <video id="myVideo" playsinline>
+        <video id="myVideo" playsinline muted>
             <source src="122.vss" type="video/mp4">
             Your browser does not support the video tag.
         </video>
     </div>
     
-    <div id="loading">
-        <i class="fas fa-spinner"></i>
-        Loading video...
-    </div>
-    
-    <div id="errorMsg" class="hidden">
-        <i class="fas fa-exclamation-triangle" style="font-size: 32px; margin-bottom: 15px;"></i>
-        <h2>Video Load Error</h2>
-        <p>Please make sure the video file "122.vss" is in the same folder as this page.</p>
-    </div>
-    
     <div id="orientationWarning">
-        <i class="fas fa-rotate-right"></i>
-        <h2>Please Rotate Your Device</h2>
-        <p>For the best viewing experience, please rotate your phone to landscape mode.</p>
+        <i class="fa-icon">↷</i>
+        <h2>Rotate to Landscape</h2>
+        <p>For the best experience, please rotate your device to landscape mode.</p>
     </div>
 
     <script>
-        // Get elements
+        // Get the video element
         const video = document.getElementById('myVideo');
-        const loading = document.getElementById('loading');
-        const errorMsg = document.getElementById('errorMsg');
+        const orientationWarning = document.getElementById('orientationWarning');
         
         // Function to enter fullscreen
         function enterFullscreen() {
@@ -161,38 +113,23 @@
                 container.requestFullscreen().catch(err => {
                     console.log('Fullscreen request failed:', err);
                 });
-            } else if (container.mozRequestFullScreen) { // Firefox
+            } else if (container.mozRequestFullScreen) {
                 container.mozRequestFullScreen();
-            } else if (container.webkitRequestFullscreen) { // Chrome, Safari
+            } else if (container.webkitRequestFullscreen) {
                 container.webkitRequestFullscreen();
-            } else if (container.msRequestFullscreen) { // IE/Edge
+            } else if (container.msRequestFullscreen) {
                 container.msRequestFullscreen();
             }
         }
         
         // When the video ends, freeze on the last frame
         video.addEventListener('ended', function() {
-            // Pause the video on the last frame
             video.pause();
-            
-            // Hide loading indicator
-            loading.classList.add('hidden');
-        });
-        
-        // When video can play, hide loading and play
-        video.addEventListener('canplay', function() {
-            loading.classList.add('hidden');
-            video.play().catch(e => {
-                // If autoplay fails, show message to user
-                loading.innerHTML = '<i class="fas fa-play-circle"></i><br>Tap to play video';
-                loading.classList.remove('hidden');
-            });
         });
         
         // Handle any errors
         video.addEventListener('error', function() {
-            loading.classList.add('hidden');
-            errorMsg.classList.remove('hidden');
+            console.error("Video loading error");
         });
         
         // Try to enter fullscreen when video starts playing
@@ -200,56 +137,67 @@
             enterFullscreen();
         });
         
-        // Click to play if autoplay is blocked
+        // Click to play if needed
         video.addEventListener('click', function() {
             if (video.paused) {
                 video.play();
             }
         });
         
-        // Loading indicator click to retry
-        loading.addEventListener('click', function() {
-            if (video.error) {
-                window.location.reload();
-            } else if (video.paused) {
-                video.play();
-            }
-        });
-        
-        // Attempt to automatically play when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            // Set video to autoplay with muted (required for autoplay on many mobile devices)
+        // Start playing when page loads
+        window.addEventListener('load', function() {
+            // Mute and try to play automatically
             video.muted = true;
-            video.autoplay = true;
             
-            // Try to play programmatically
-            video.play().catch(e => {
-                console.log('Autoplay prevented, waiting for user interaction');
-            });
+            // Try to play immediately
+            const playPromise = video.play();
+            
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // Autoplay was prevented, wait for user interaction
+                    document.body.addEventListener('click', function() {
+                        video.play();
+                    }, { once: true });
+                });
+            }
         });
         
         // Handle device orientation changes
         window.addEventListener('orientationchange', function() {
-            // Small delay to allow orientation to complete
+            // Re-enter fullscreen after orientation change
             setTimeout(enterFullscreen, 300);
+            
+            // Update orientation warning visibility
+            if (window.innerHeight > window.innerWidth) {
+                // Portrait mode
+                orientationWarning.style.display = 'flex';
+            } else {
+                // Landscape mode
+                orientationWarning.style.display = 'none';
+            }
         });
         
         // Handle fullscreen change events
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
-        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
-        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
         
         function handleFullscreenChange() {
             // Check if we exited fullscreen
-            if (!document.fullscreenElement && 
-                !document.webkitFullscreenElement && 
-                !document.mozFullScreenElement &&
-                !document.msFullscreenElement) {
+            if (!document.fullscreenElement && !document.webkitFullscreenElement) {
                 // Try to re-enter fullscreen
                 enterFullscreen();
             }
         }
+        
+        // Ensure video is positioned at the bottom
+        function positionVideoAtBottom() {
+            const video = document.getElementById('myVideo');
+            video.style.objectPosition = 'center bottom';
+        }
+        
+        // Call initially and on resize
+        positionVideoAtBottom();
+        window.addEventListener('resize', positionVideoAtBottom);
     </script>
 </body>
 </html>
